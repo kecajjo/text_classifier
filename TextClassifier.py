@@ -42,23 +42,33 @@ class TextClassifier:
         for doc in range(0, len(data)):
             # Remove all non word characters and replace them with a space
             data_after_regex = re.sub(r'\W', ' ', str(data[doc]))
-
             # after removing special characters we might get ''dog's'' converted to ''dog s'' so we want to remvoe single leter characters
             data_after_regex = re.sub(r'\s+[a-zA-Z]\s+', ' ', data_after_regex)
-
             # remove double spaces
             data_after_regex = re.sub(r'\s+', ' ', data_after_regex, flags=re.I)
-
             # we don't want ''Dog'' and ''dog'' to be treated as different word 
             data_after_regex = data_after_regex.lower()
-
             # convert plural to singular and other similar word for example ''dogs'' into ''dog''
             data_after_regex = data_after_regex.split()
-
             data_after_regex = [lemmatizer.lemmatize(word) for word in data_after_regex]
             data_after_regex = ' '.join(data_after_regex)
-
             self.preprocessed_data.append(data_after_regex)
+
+    def TextPreprocessingSingleDoc(self, data):
+        lemmatizer = WordNetLemmatizer()
+        # Remove all non word characters and replace them with a space
+        data_after_regex = re.sub(r'\W', ' ', str(data[doc]))
+        # after removing special characters we might get ''dog's'' converted to ''dog s'' so we want to remvoe single leter characters
+        data_after_regex = re.sub(r'\s+[a-zA-Z]\s+', ' ', data_after_regex)
+        # remove double spaces
+        data_after_regex = re.sub(r'\s+', ' ', data_after_regex, flags=re.I)
+        # we don't want ''Dog'' and ''dog'' to be treated as different word 
+        data_after_regex = data_after_regex.lower()
+        # convert plural to singular and other similar word for example ''dogs'' into ''dog''
+        data_after_regex = data_after_regex.split()
+        data_after_regex = [lemmatizer.lemmatize(word) for word in data_after_regex]
+        data_after_regex = ' '.join(data_after_regex)
+        return data_after_regex
 
 
     def ConvertToBOW(self):
@@ -88,9 +98,9 @@ class TextClassifier:
     def PredictSingleFile(self, path):
         with open(path, 'r') as file:
             file_content = file.read().replace('\n', ' ')
-            self.TextPreprocessing(file_content)
+            text = self.TextPreprocessingSingleDoc(data)(file_content)
         vectorizer = CountVectorizer(max_features=2000, min_df=1, max_df=1, stop_words=stopwords.words('english'))
-        text = vectorizer.transform(self.preprocessed_data).toarray()
+        text = vectorizer.transform(text).toarray()
         tfidfconverter = TfidfTransformer()
         text = tfidfconverter.transform(text).toarray()
         print({self.classifier.predict(text)[0]})
