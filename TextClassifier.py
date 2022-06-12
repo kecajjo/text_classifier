@@ -12,6 +12,7 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.ensemble import RandomForestClassifier
+import pickle
 
 class TextClassifier:
     def __init__(self):
@@ -25,6 +26,9 @@ class TextClassifier:
         self.test_correct_target = []
         self.test_output_target = []
         self.classifier = []
+        self.tfidfconverter = []
+        self.vectorizer = []
+        self.target_dictionary = {}
 
     def PreprocessData(self, path):
         self.ReadDataFromFolder(path)
@@ -35,6 +39,10 @@ class TextClassifier:
         #load_files divide datasets into data and targets and treat each subdirectory of given folder as a separate category
         movie_data = load_files(r"mlarr_text")
         self.data, self.target = movie_data.data, movie_data.target
+        i = 0
+        for name in movie_data.target_names:
+            self.target_dictionary[i] = name
+            i += 1
 
     def TextPreprocessing(self, data):
         lemmatizer = WordNetLemmatizer()
@@ -57,7 +65,7 @@ class TextClassifier:
     def TextPreprocessingSingleDoc(self, data):
         lemmatizer = WordNetLemmatizer()
         # Remove all non word characters and replace them with a space
-        data_after_regex = re.sub(r'\W', ' ', str(data[doc]))
+        data_after_regex = re.sub(r'\W', ' ', str(data))
         # after removing special characters we might get ''dog's'' converted to ''dog s'' so we want to remvoe single leter characters
         data_after_regex = re.sub(r'\s+[a-zA-Z]\s+', ' ', data_after_regex)
         # remove double spaces
@@ -72,11 +80,11 @@ class TextClassifier:
 
 
     def ConvertToBOW(self):
-        vectorizer = CountVectorizer(max_features=2000, min_df=5, max_df=0.8, stop_words=stopwords.words('english'))
-        bow = vectorizer.fit_transform(self.preprocessed_data).toarray()
+        self.vectorizer = CountVectorizer(max_features=2000, min_df=5, max_df=0.8, stop_words=stopwords.words('english'))
+        bow = self.vectorizer.fit_transform(self.preprocessed_data).toarray()
         #need to be converted using Term Frequency Inverse Document Frequency
-        tfidfconverter = TfidfTransformer()
-        self.bow = tfidfconverter.fit_transform(bow).toarray()
+        self.tfidfconverter = TfidfTransformer()
+        self.bow = self.tfidfconverter.fit_transform(bow).toarray()
 
     def RunTraining(self):
         self.SplitDataToTrainAndTest()
@@ -95,20 +103,29 @@ class TextClassifier:
         print(classification_report(self.test_correct_target, self.test_output_target))
         print(accuracy_score(self.test_correct_target, self.test_output_target))
 
+    def SaveModel(self, filename):
+        with open(filename, 'wb') as fout:
+            pickle.dump((self.vectorizer, self.tfidfconverter, self.classifier, self.target_dictionary), fout)
+
+    def ReadModelFromFile(self, filename):
+        with open(filename, 'rb') as f:
+            self.vectorizer, self.tfidfconverter, self.classifier, self.target_dictionary = pickle.load(f)
+
     def PredictSingleFile(self, path):
+        text = []
         with open(path, 'r') as file:
             file_content = file.read().replace('\n', ' ')
-            text = self.TextPreprocessingSingleDoc(data)(file_content)
-        vectorizer = CountVectorizer(max_features=2000, min_df=1, max_df=1, stop_words=stopwords.words('english'))
-        text = vectorizer.transform(text).toarray()
-        tfidfconverter = TfidfTransformer()
-        text = tfidfconverter.transform(text).toarray()
-        print({self.classifier.predict(text)[0]})
+            text.append(self.TextPreprocessingSingleDoc(file_content))
+        text = self.vectorizer.transform(text).toarray()
+        text = self.tfidfconverter.transform(text).toarray()
+        print({self.target_dictionary[self.classifier.predict(text)[0]]})
 
 
 if __name__ == "__main__":
     text_classifier = TextClassifier()
-    text_classifier.PreprocessData("mlarr_text")
-    text_classifier.RunTraining()
-    text_classifier.EvaluateModel()
-    text_classifier.PredictSingleFile("mlarr_text/business/b_406.txt")
+    # text_classifier.PreprocessData("mlarr_text")
+    # text_classifier.RunTraining()
+    # text_classifier.EvaluateModel()
+    # text_classifier.SaveModel("model_params.txt")
+    text_classifier.ReadModelFromFile("model_params.txt")
+    text_classifier.PredictSingleFile("mlarr_text/politics/p_206.txt")
