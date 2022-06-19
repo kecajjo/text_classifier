@@ -94,7 +94,7 @@ class TextClassifier:
         self.train_data, self.test_data, self.train_target, self.test_correct_target = train_test_split(self.bow, self.target, test_size=0.3, random_state=0)
 
     def TrainModel(self):
-        self.classifier = RandomForestClassifier(n_estimators=1000, random_state=0)
+        self.classifier = RandomForestClassifier(n_estimators=100, random_state=0)
         self.classifier.fit(self.train_data, self.train_target) 
         self.test_output_target = self.classifier.predict(self.test_data)
     
@@ -120,12 +120,30 @@ class TextClassifier:
         text = self.tfidfconverter.transform(text).toarray()
         print({self.target_dictionary[self.classifier.predict(text)[0]]})
 
+    def TestLoadedModel(self, model_filename, test_path):
+        self.ReadModelFromFile(model_filename)
+        self.ReadDataFromFolder(test_path)
+        self.TextPreprocessing(self.data)
+        bow = self.vectorizer.transform(self.preprocessed_data).toarray()
+        self.bow = self.tfidfconverter.transform(bow).toarray()
+
+        self.test_data, self.test_correct_target = self.bow, self.target
+        self.test_output_target = self.classifier.predict(self.test_data)
+        self.EvaluateModel()
+
 
 if __name__ == "__main__":
     text_classifier = TextClassifier()
-    # text_classifier.PreprocessData("mlarr_text")
-    # text_classifier.RunTraining()
-    # text_classifier.EvaluateModel()
-    # text_classifier.SaveModel("model_params.txt")
-    text_classifier.ReadModelFromFile("model_params.txt")
-    text_classifier.PredictSingleFile("mlarr_text/politics/p_206.txt")
+    user_choice = input()
+    if user_choice == '1':
+        text_classifier.PreprocessData("mlarr_text")
+        text_classifier.RunTraining()
+        text_classifier.EvaluateModel()
+        text_classifier.SaveModel("model_params.txt")
+    elif user_choice == '2':
+        text_classifier.TestLoadedModel("model_params.txt", "mlarr_text")
+    elif user_choice == '3':
+        text_classifier.ReadModelFromFile("model_params.txt")
+        text_classifier.PredictSingleFile("mlarr_text/politics/p_206.txt")
+    else:
+        print("Option not known")
