@@ -134,6 +134,7 @@ class TextClassifier:
 
 if __name__ == "__main__":
     text_classifier = TextClassifier()
+    print("To choose option write number 1-3 and press ENTER\n 1 - train model\n 2 - evaluate model read from file\n 3 - classify file")
     user_choice = input()
     if user_choice == '1':
         text_classifier.PreprocessData("mlarr_text")
@@ -144,6 +145,8 @@ if __name__ == "__main__":
         text_classifier.TestLoadedModel("model_params.txt", "mlarr_text")
     elif user_choice == '3':
         text_classifier.ReadModelFromFile("model_params.txt")
-        text_classifier.PredictSingleFile("mlarr_text/politics/p_206.txt")
+        print("Enter path to the file which will be classified")
+        file_path = input()
+        text_classifier.PredictSingleFile(file_path)
     else:
         print("Option not known")
